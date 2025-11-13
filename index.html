@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cublic</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --background-color: #ecf0f1;
+            --surface-color: #ffffff;
+            --success-color: #2ecc71;
+            --error-color: #e74c3c;
+            --font-color: #34495e;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--font-color);
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background-color: var(--surface-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            overflow: hidden;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1.5rem 2rem;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+
+        main {
+            padding: 2rem;
+        }
+
+        .level-selector {
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .level-btn {
+            background-color: #bdc3c7;
+            color: var(--secondary-color);
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .level-btn.active {
+            background-color: var(--secondary-color);
+            color: white;
+            font-weight: bold;
+        }
+
+        .level-content {
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+        }
+
+        .level-content h2 {
+            margin-top: 0;
+            color: var(--primary-color);
+        }
+
+        .level-hint {
+            background-color: #f8f9fa;
+            border-left: 4px solid var(--primary-color);
+            padding: 1rem;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        .upload-form {
+            margin-top: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            border: 2px dashed #ccc;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .file-input-wrapper:hover {
+            border-color: var(--primary-color);
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        #file-name {
+            margin-top: 1rem;
+            font-style: italic;
+            color: #7f8c8d;
+        }
+
+        .submit-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            align-self: flex-start;
+        }
+
+        .submit-btn:hover {
+            background-color: #2980b9;
+        }
+
+        #message-area {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            display: none;
+            font-weight: 500;
+        }
+
+        #message-area.success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        #message-area.error {
+            background-color: var(--error-color);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Cublic</h1>
+    </header>
+    <main>
+        <div class="level-selector" id="level-selector">
+            <!-- Les boutons de niveaux seront générés par JavaScript -->
+        </div>
+        <div class="level-content">
+            <h2 id="level-title"></h2>
+            <div class="level-hint" id="level-hint"></div>
+            <form class="upload-form" id="upload-form" onsubmit="return false;">
+                <div class="file-input-wrapper">
+                    <span>Cliquez ou glissez-déposez un fichier ici</span>
+                    <input type="file" id="file-input" required>
+                    <p id="file-name">Aucun fichier sélectionné</p>
+                </div>
+                <button type="submit" class="submit-btn">Téléverser</button>
+            </form>
+            <div id="message-area"></div>
+        </div>
+    </main>
+</div>
+
+<script>
+    const levels = [
+        {
+            title: "Niveau 1 : Le débutant",
+            hint: "Le serveur vérifie uniquement l'extension du fichier. Il n'accepte que les images (.jpg, .png, .gif).",
+            check: (file) => {
+                const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif'];
+                const fileName = file.name.toLowerCase();
+                return allowedExtensions.some(ext => fileName.endsWith(ext));
+            }
+        },
+        {
+            title: "Niveau 2 : Le point-virgule",
+            hint: "Le serveur est un peu plus malin. Il cherche à bloquer les fichiers PHP. Peut-être que le nom du fichier est mal analysé ?",
+            check: (file) => {
+                // Simulation d'une faille où le serveur ne regarde que la première extension
+                // La solution est un fichier comme "shell.php.jpg"
+                const fileName = file.name.toLowerCase();
+                return !fileName.includes('.php') && (fileName.endsWith('.jpg') || fileName.endsWith('.png'));
+            }
+        },
+        {
+            title: "Niveau 3 : La liste noire",
+            hint: "Le serveur utilise une liste noire d'extensions interdites : .php, .php3, .php4, .php5, .phtml. Y a-t-il d'autres extensions qui pourraient être exécutées ?",
+            check: (file) => {
+                // La solution est d'utiliser une extension non listée comme .php7 ou .pht
+                const fileName = file.name.toLowerCase();
+                return fileName.endsWith('.php7') || fileName.endsWith('.pht');
+            }
+        }
+    ];
+
+    let currentLevel = 0;
+
+    // ... Le reste du script JavaScript pour faire fonctionner le jeu ...
+    // (Ce script sera complété dans la prochaine étape)
+</script>
+
+</body>
+</html>
