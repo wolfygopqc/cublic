@@ -683,6 +683,7 @@
                 player: { 
                     currentLocationId: 'home',
                     rentedPropertyId: 'player_home',
+                    hasChild: false,
                     partner: null,
                     relationships: JSON.parse(JSON.stringify(socialData)),
                     transactions: [],
@@ -916,8 +917,15 @@
                             ]
                         });
                     }
-                    if (gameState.player.partner && gameState.player.partner.isMarried && !gameState.player.hasChild && Math.random() < 0.1) {
-                        // Event to have a child
+                    if (gameState.player.partner && gameState.player.partner.isMarried && !gameState.player.hasChild && Math.random() < 0.15) {
+                        clearInterval(gameInterval);
+                        showLifeEvent({
+                            id: 'have_child', title: "Agrandir la famille ?", description: "Vous et votre partenaire avez discuté d'avoir un enfant. Êtes-vous prêt ?",
+                            choices: [
+                                { text: "Oui, c'est le moment parfait !", condition: () => true, action: () => { gameState.player.hasChild = true; gameState.needs.happiness = 100; showNotification("Félicitations pour la naissance de votre enfant !", 'success'); } },
+                                { text: "Pas tout de suite.", condition: () => true, action: () => { gameState.player.partner.relationship -= 10; } }
+                            ]
+                        });
                     }
 
                     processMonthlyBills();
@@ -937,6 +945,13 @@
             let happinessDecay = 0.01;
             if (gameState.needs.hunger < 10) happinessDecay += 0.01;
             if (gameState.needs.energy < 10) happinessDecay += 0.01;
+
+            gameState.customBusinesses.forEach(biz => {
+                if (biz.marketingBoost && biz.marketingBoost.duration > 0) {
+                    biz.marketingBoost.duration--;
+                    if (biz.marketingBoost.duration === 0) biz.marketingBoost = null;
+                }
+            });
 
             Object.values(gameState.player.relationships).forEach(rel => {
                 rel.relationship = Math.max(0, rel.relationship - 0.02);
@@ -1037,6 +1052,19 @@
                 showNotification(`Remboursement du prêt: -${gameState.loan.monthlyPayment.toLocaleString()}$`, 'error');
                 if (gameState.loan.remainingPayments <= 0) gameState.loan = null;
             }
+
+            if (gameState.player.hasChild) {
+                removeMoney(500, "Frais pour l'enfant");
+            }
+
+            gameState.customBusinesses.forEach(biz => {
+                if (biz.employees > 0) {
+                    const salaries = biz.employees * 1500; // 1500$ salary per employee per month
+                    removeMoney(salaries, `Salaires: ${biz.name}`);
+                }
+            });
+
+
         }
 
         function advanceTime(hours) {
@@ -1718,7 +1746,7 @@
                     if (gameState.customBusinesses.length > 0) {
                         portfolioHtml += '<hr style="border-color: var(--border-color); margin: 1rem 0;"><h4>Entreprises Crées</h4>';
                         gameState.customBusinesses.forEach(business => {
-                            portfolioHtml += `<p><strong>${business.name}</strong> (+${business.income.toLocaleString()}$/j)</p>`;
+                            portfolioHtml += `<div class="business-listing"><span><strong>${business.name}</strong> (+${getCustomBusinessIncome(business).toLocaleString()}$/j)</span><button class="menu-btn" style="font-size:0.8rem; padding:0.4rem 0.8rem;" onclick="manageBusiness('${business.id}')">Gérer</button></div>`;
                         });
                     }
                     contentHtml = portfolioHtml;
@@ -1789,6 +1817,9 @@
                             <span>${partner.name}${status} (${Math.round(partner.relationship)}%)</span>
                             <button class="menu-btn" style="font-size:0.8rem; padding:0.4rem 0.8rem;" onclick="interactWith('partner')">Interagir</button>
                         </div>`;
+                }
+                if (gameState.player.hasChild) {
+                    socialHtml += `<p style="text-align: center; margin-top: 1rem;">Vous avez un enfant.</p>`;
                 }
                 contentHtml = socialHtml;
                 break;
@@ -2089,7 +2120,8 @@
             name: name,
             type: type,
             income: baseIncome,
-            level: 1
+            employees: 0,
+            marketingBoost: null
         };
 
         gameState.customBusinesses.push(newBusiness);
@@ -2192,7 +2224,57 @@
     }
 
     function showRenovationOptions(businessId) {
-        alert("La rénovation n'est pas encore disponible pour ce type de bien.");
+        alert("La rénovation n'est pas encore disponible.");
+    }
+
+    function getCustomBusinessIncome(business) {
+        let income = business.income;
+        income *= (1 + business.employees * 0.5); // Each employee adds 50% to base income
+        if (business.marketingBoost) {
+            income *= 1.5; // Marketing boosts total income by 50%
+        }
+        return Math.floor(income);
+    }
+
+    function manageBusiness(businessId) {
+        const business = gameState.customBusinesses.find(b => b.id === businessId);
+        if (!business) return;
+
+        const phoneScreen = document.getElementById('phone-screen');
+        let contentHtml = `
+            <p><strong>Revenu Actuel:</strong> ${getCustomBusinessIncome(business).toLocaleString()}$/jour</p>
+            <p><strong>Employés:</strong> ${business.employees}</p>
+            <hr>
+            <div class="menu-buttons">
+                <button class="menu-btn" style="font-size: 0.9rem;" onclick="hireEmployee('${business.id}')">Embaucher (Coût mensuel: 1500$)</button>
+                <button class="menu-btn" style="font-size: 0.9rem;" onclick="runMarketing('${business.id}')" ${business.marketingBoost ? 'disabled' : ''}>Marketing (5000$ pour 30j)</button>
+            </div>
+        `;
+        
+        phoneScreen.innerHTML = `<div class="panel" style="height: 100%; display: flex; flex-direction: column;"><h2>Gérer: ${business.name}</h2><div style="flex-grow: 1; overflow-y: auto;">${contentHtml}</div></div>`;
+        phoneScreen.dataset.currentApp = 'manageBusiness';
+    }
+
+    function hireEmployee(businessId) {
+        const business = gameState.customBusinesses.find(b => b.id === businessId);
+        if (!business) return;
+        business.employees++;
+        showNotification(`Vous avez embauché un nouvel employé pour ${business.name} !`, 'success');
+        manageBusiness(businessId); // Refresh view
+    }
+
+    function runMarketing(businessId) {
+        const business = gameState.customBusinesses.find(b => b.id === businessId);
+        if (!business || business.marketingBoost) return;
+
+        if (gameState.money >= 5000) {
+            removeMoney(5000, `Campagne Marketing: ${business.name}`);
+            business.marketingBoost = { duration: 30 };
+            showNotification(`La campagne marketing pour ${business.name} est lancée !`, 'success');
+            manageBusiness(businessId); // Refresh view
+        } else {
+            showNotification("Fonds insuffisants pour la campagne marketing.", 'error');
+        }
     }
 
     document.addEventListener('DOMContentLoaded', initialize);
