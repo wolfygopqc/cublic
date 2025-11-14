@@ -1,236 +1,2202 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cublic</title>
     <style>
         :root {
-            --primary-color: #3498db;
-            --secondary-color: #2c3e50;
-            --background-color: #ecf0f1;
-            --surface-color: #ffffff;
+            --primary-color: #5294e2;
+            --secondary-color: #75b0f8;
             --success-color: #2ecc71;
-            --error-color: #e74c3c;
-            --font-color: #34495e;
+            --energy-color: #f1c40f;
+            --happiness-color: #9b59b6;
+            --background-image: url('https://www.bungie.net/img/destiny_content/pgcr/background_decal.png'), radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+            --surface-color: rgba(15, 20, 25, 0.85);
+            --border-color: rgba(130, 170, 220, 0.4);
             --border-radius: 8px;
-            --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--background-color);
-            color: var(--font-color);
+            background: #0c1014 var(--background-image) no-repeat center center fixed;
+            color: white;
+            overflow: hidden;
             margin: 0;
-            padding: 2rem;
+            height: 100dvh;
+            width: 100dvw;
             display: flex;
             justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
+            align-items: center;
         }
 
-        .container {
+        #game-container {
+            height: 100%;
             width: 100%;
-            max-width: 800px;
-            background-color: var(--surface-color);
-            border-radius: var(--border-radius);
-            box-shadow: var(--box-shadow);
-            overflow: hidden;
+            position: relative;
         }
 
-        header {
+        .screen {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s, visibility 0.5s;
+            background: transparent;
+            box-sizing: border-box;
+        }
+
+        .screen.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        #main-menu {
+            text-align: center;
+            background: var(--background-image);
+        }
+
+        #main-menu h1 {
+            font-size: 4rem;
+            color: white;
+            margin-bottom: 2rem;
+        }
+
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            width: 300px;
+        }
+
+        .menu-btn {
+            padding: 1rem;
+            font-size: 1.2rem;
+            font-weight: bold;
             background-color: var(--primary-color);
             color: white;
-            padding: 1.5rem 2rem;
-            text-align: center;
-        }
-
-        header h1 {
-            margin: 0;
-            font-size: 1.8rem;
-        }
-
-        main {
-            padding: 2rem;
-        }
-
-        .level-selector {
-            margin-bottom: 2rem;
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-
-        .level-btn {
-            background-color: #bdc3c7;
-            color: var(--secondary-color);
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s;
         }
 
-        .level-btn.active {
+        .menu-btn:hover {
             background-color: var(--secondary-color);
-            color: white;
+            transform: translateY(-2px);
+        }
+
+        .menu-btn:disabled {
+            background-color: rgba(0, 0, 0, 0.2);
+            border-color: rgba(130, 170, 220, 0.2);
+            color: #999;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        #game-screen {
+            flex-direction: column;
+        }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        #time-display {
+            font-size: 1.2rem;
             font-weight: bold;
         }
 
-        .level-content {
-            border: 1px solid #ddd;
-            border-radius: var(--border-radius);
-            padding: 1.5rem;
+        #money-display {
+            font-size: 1.2rem;
+            font-weight: bold;
         }
 
-        .level-content h2 {
+        .stat-bar-container {
+            width: 120px;
+            height: 15px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .stat-bar {
+            width: 100%;
+            height: 100%;
+            transition: width 0.2s linear;
+        }
+        #hunger-bar { background-color: #e67e22; }
+        #energy-bar { background-color: var(--energy-color); }
+        #happiness-bar { background-color: var(--happiness-color); }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0,0,0,0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-content {
+            background-color: var(--surface-color);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+            clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 500px;
+        }
+        .job-listing {
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .business-listing {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            border-radius: 0;
+            margin-bottom: 0;
+        }
+        .business-listing .owned-tag {
+            color: var(--success-color);
+            font-weight: bold;
+            background-color: transparent;
+            padding: 0.5rem 1rem;
+            border: 2px solid var(--success-color);
+            border-radius: var(--border-radius);
+        }
+        .business-details {
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+
+        #map-modal .modal-content {
+            width: 100%;
+            height: 100%;
+            max-width: none;
+            border-radius: 0;
+            padding: 0;
+        }
+
+        #map-modal-content {
+            position: relative;
+        }
+
+        #game-screen {
+            display: grid;
+            grid-template-columns: 1fr;
+            grid-template-rows: 80px 1fr;
+            grid-template-areas:
+                "header header"
+                "main main";
+            align-items: start;
+            background: var(--background-image);
+            width: 100%;
+            height: 100%;
+        }
+
+        #header {
+            grid-area: header;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+            background-color: var(--surface-color);
+            border-bottom: 1px solid var(--border-color);
+            backdrop-filter: blur(10px);
+        }
+
+        #main-content {
+            grid-area: main;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+
+        #main-content > .panel {
+            height: calc(100vh - 80px - 4rem);
+            overflow-y: auto;
+        }
+
+        #sidebar {
+            grid-area: sidebar;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            color: white;
+        }
+        
+        #phone-dock {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            background-color: var(--surface-color);
+            padding: 10px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(10px);
+            z-index: 1001;
+        }
+
+        .app-icon {
+            width: 60px;
+            height: 60px;
+            font-size: 2rem;
+            border-radius: 12px;
+            background-color: rgba(0,0,0,0.2);
+            border: none;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .app-icon:hover {
+            background-color: var(--primary-color);
+            transform: translateY(-5px);
+        }
+
+        #phone-screen {
+            position: fixed;
+            bottom: 105px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 380px;
+            height: 500px;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, bottom 0.3s;
+            pointer-events: none;
+        }
+
+        #phone-screen.active {
+            opacity: 1;
+            visibility: visible;
+            bottom: 115px;
+            pointer-events: all;
+        }
+
+        .panel {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            backdrop-filter: blur(10px);
+            clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px));
+        }
+
+        .panel h2 {
+            margin: 0 0 1rem 0;
+            font-size: 1.2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        #map-modal-content #map-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #map-icons-container {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        #map-info-panel {
+            position: absolute;
+            top: 0;
+            right: -400px;
+            width: 350px;
+            height: 100%;
+            background-color: var(--surface-color);
+            box-shadow: -5px 0 15px rgba(0,0,0,0.2);
+            transition: right 0.3s ease-in-out;
+            padding: 1.5rem;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        #map-info-panel.active {
+            right: 0;
+        }
+
+        #map-info-panel h2 {
             margin-top: 0;
             color: var(--primary-color);
         }
 
-        .level-hint {
-            background-color: #f8f9fa;
-            border-left: 4px solid var(--primary-color);
-            padding: 1rem;
-            margin: 1rem 0;
-            font-size: 0.9rem;
-        }
-
-        .upload-form {
-            margin-top: 1.5rem;
+        #map-legend {
             display: flex;
-            flex-direction: column;
             gap: 1rem;
-        }
-
-        .file-input-wrapper {
-            position: relative;
-            border: 2px dashed #ccc;
-            border-radius: var(--border-radius);
-            padding: 2rem;
-            text-align: center;
-            cursor: pointer;
-            transition: border-color 0.3s;
-        }
-
-        .file-input-wrapper:hover {
-            border-color: var(--primary-color);
-        }
-
-        .file-input-wrapper input[type="file"] {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            cursor: pointer;
-        }
-
-        #file-name {
             margin-top: 1rem;
-            font-style: italic;
-            color: #7f8c8d;
-        }
-
-        .submit-btn {
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 0.8rem 1.5rem;
-            border-radius: var(--border-radius);
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            align-self: flex-start;
-        }
-
-        .submit-btn:hover {
-            background-color: #2980b9;
-        }
-
-        #message-area {
-            margin-top: 1.5rem;
-            padding: 1rem;
-            border-radius: var(--border-radius);
-            display: none;
-            font-weight: 500;
-        }
-
-        #message-area.success {
-            background-color: var(--success-color);
-            color: white;
-        }
-
-        #message-area.error {
-            background-color: var(--error-color);
-            color: white;
+            justify-content: center;
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <h1>Cublic</h1>
-    </header>
-    <main>
-        <div class="level-selector" id="level-selector">
-            <!-- Les boutons de niveaux seront générés par JavaScript -->
+<div id="game-container">
+    <div id="main-menu" class="screen active">
+        <div class="panel">
+            <h1>Cublic</h1>
+            <div class="menu-buttons">
+                <button id="new-game-btn" class="menu-btn">Nouvelle Partie</button>
+                <button id="continue-btn" class="menu-btn">Continuer</button>
+                <button id="options-btn" class="menu-btn">Options</button>
+            </div>
         </div>
-        <div class="level-content">
-            <h2 id="level-title"></h2>
-            <div class="level-hint" id="level-hint"></div>
-            <form class="upload-form" id="upload-form" onsubmit="return false;">
-                <div class="file-input-wrapper">
-                    <span>Cliquez ou glissez-déposez un fichier ici</span>
-                    <input type="file" id="file-input" required>
-                    <p id="file-name">Aucun fichier sélectionné</p>
-                </div>
-                <button type="submit" class="submit-btn">Téléverser</button>
-            </form>
-            <div id="message-area"></div>
+    </div>
+
+    <div id="game-screen" class="screen">
+        <header id="header">
+            <button id="back-to-menu-btn" class="menu-btn" style="padding: 0.5rem 1rem; font-size: 1rem;">Menu</button>
+            <div id="time-display">Jour 1 - 08:00</div>
+            <div id="money-display">500 $</div>
+        </header>
+
+        <main id="main-content">
+            <div class="panel">
+                <h2 id="main-panel-title">Actions</h2>
+                <div id="contextual-actions" style="max-height: calc(100% - 80px); overflow-y: auto;"></div>
+                <button id="travel-btn" class="menu-btn" style="margin-top: 1rem;">Se Déplacer</button>
+            </div>
+        </main>
+
+        <div id="phone-dock">
+            <button class="app-icon" id="status-app-btn" title="Statut">👤</button>
+            <button class="app-icon" id="needs-app-btn" title="Besoins">❤️</button>
+            <button class="app-icon" id="bank-app-btn" title="Banque">🏦</button>
+            <button class="app-icon" id="portfolio-app-btn" title="Portfolio">💼</button>
+            <button class="app-icon" id="stocks-app-btn" title="Bourse">📈</button>
+            <button class="app-icon" id="jobs-app-btn" title="Emploi">👔</button>
+            <button class="app-icon" id="social-app-btn" title="Social">💬</button>
+            <button class="app-icon" id="inventory-app-btn" title="Inventaire">🎒</button>
+            <button class="app-icon" id="ranking-app-btn" title="Classement">🏆</button>
         </div>
-    </main>
+
+        <div id="phone-screen"></div>
+    </div>
 </div>
 
-<script>
-    const levels = [
-        {
-            title: "Niveau 1 : Le débutant",
-            hint: "Le serveur vérifie uniquement l'extension du fichier. Il n'accepte que les images (.jpg, .png, .gif).",
-            check: (file) => {
-                const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif'];
-                const fileName = file.name.toLowerCase();
-                return allowedExtensions.some(ext => fileName.endsWith(ext));
+<div id="travel-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h2>Où voulez-vous aller ?</h2>
+        <div id="locations-list"></div>
+    </div>
+</div>
+
+<div id="options-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h2>Options</h2>
+        <p>Attention, la réinitialisation est définitive.</p>
+        <button id="reset-game-btn" class="menu-btn" style="margin-top: 1rem; background-color: #c0392b;">Réinitialiser la Partie</button>
+        <button id="close-options-btn" class="menu-btn" style="margin-top: 1rem;">Fermer</button>
+    </div>
+</div>
+
+<div id="event-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h2 id="event-title"></h2>
+        <p id="event-description"></p>
+        <div id="event-choices" class="menu-buttons" style="margin-top: 1rem;"></div>
+    </div>
+</div>
+
+<div id="history-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h2>Historique des Transactions</h2>
+        <div id="history-list"></div>
+        <button id="close-history-btn" class="menu-btn" style="margin-top: 1rem;">Fermer</button>
+    </div>
+</div>
+
+<div id="sleep-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h2>Combien de temps dormir ?</h2>
+        <div id="sleep-options" class="menu-buttons" style="margin-top: 1rem;"></div>
+        <button id="cancel-sleep-btn" class="menu-btn" style="margin-top: 1rem; background-color: #c0392b;">Annuler</button>
+    </div>
+</div>
+
+<div id="sell-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h2 id="sell-modal-title">Offres d'achat</h2>
+        <div id="offers-list"></div>
+        <button id="refuse-sell-btn" class="menu-btn" style="margin-top: 1rem; background-color: #c0392b;">Refuser tout</button>
+    </div>
+</div>
+
+<div id="sleep-animation" class="modal-overlay" style="background-color: rgba(0,0,0,0.95); font-size: 4rem; color: white; pointer-events: none; z-index: 9999;">
+    <div style="position: relative; width: 100px; height: 100px;">
+        <span style="position: absolute; animation: float 2s ease-in-out infinite;">Z</span>
+        <span style="position: absolute; animation: float 2s ease-in-out infinite 0.5s;">z</span>
+        <span style="position: absolute; animation: float 2s ease-in-out infinite 1s;">z</span>
+    </div>
+</div>
+<style>
+    @keyframes float {
+        0%, 100% { transform: translateY(0) translateX(0) scale(1); opacity: 1; }
+        50% { transform: translateY(-40px) translateX(10px) scale(1.5); opacity: 0.5; }
+    }
+</style>
+
+<div id="inventory-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h2>Inventaire</h2>
+        <div id="inventory-list"></div>
+        <button id="close-inventory-btn" class="menu-btn" style="margin-top: 1rem;">Fermer</button>
+    </div>
+</div>
+
+<div id="notification-container"></div>
+<style>
+    #notification-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 2000; display: flex; flex-direction: column; gap: 0.5rem; }
+    .notification { padding: 1rem; border-radius: var(--border-radius); color: white; font-weight: bold; box-shadow: 0 2px 10px rgba(0,0,0,0.5); opacity: 0; transform: translateY(-20px); animation: fadeInOut 4s ease-in-out forwards; }
+    .notification.success { background-color: var(--success-color); }
+    .notification.error { background-color: #e74c3c; }
+    .notification.info { background-color: var(--primary-color); }
+    @keyframes fadeInOut { 0%, 100% { opacity: 0; transform: translateY(-20px); } 10%, 90% { opacity: 1; transform: translateY(0); } }
+</style>
+
+    <script>
+        const SAVE_KEY = 'cublicSaveState';
+        const GAME_TICK_MS = 50;
+
+        const mainMenuScreen = document.getElementById('main-menu');
+        const gameScreen = document.getElementById('game-screen');
+
+        let gameState = null;
+        let gameInterval = null;
+
+        const jobsData = {
+            'dev': {
+                name: 'Technologie',
+                zone: 'office',
+                levels: [
+                    { id: 'dev_junior', title: 'Développeur Junior', salary: 35, requiredSkills: { intelligence: 25 }, performanceToPromote: 100 },
+                    { id: 'dev_senior', title: 'Développeur Senior', salary: 60, requiredSkills: { intelligence: 50 }, performanceToPromote: 150 },
+                    { id: 'dev_lead', title: 'Chef de Projet Tech', salary: 90, requiredSkills: { intelligence: 70, charisma: 40 } }
+                ]
+            },
+            'sales': {
+                name: 'Vente',
+                zone: 'commercial',
+                levels: [
+                    { id: 'sales_clerk', title: 'Commis de magasin', salary: 18, requiredSkills: { charisma: 5 }, performanceToPromote: 80 },
+                    { id: 'sales_realtor', title: 'Agent Immobilier', salary: 30, requiredSkills: { charisma: 20 }, performanceToPromote: 120 },
+                    { id: 'sales_manager', title: 'Manager Commercial', salary: 50, requiredSkills: { charisma: 40, intelligence: 30 } }
+                ]
+            },
+            'kitchen': {
+                name: 'Restauration',
+                zone: 'commercial',
+                levels: [
+                    { id: 'kitchen_plongeur', title: 'Plongeur', salary: 16, requiredSkills: { manual: 5 }, performanceToPromote: 80 },
+                    { id: 'kitchen_cuisinier', title: 'Cuisinier', salary: 24, requiredSkills: { manual: 20 }, performanceToPromote: 120 },
+                    { id: 'kitchen_chef', title: 'Chef Cuisinier', salary: 45, requiredSkills: { manual: 50, charisma: 20 } }
+                ]
+            },
+            'health': {
+                name: 'Santé',
+                zone: 'hospital',
+                levels: [
+                    { id: 'health_aide', title: 'Aide-Soignant', salary: 20, requiredSkills: { intelligence: 10, charisma: 10 }, performanceToPromote: 100 },
+                    { id: 'health_infirmier', title: 'Infirmier', salary: 40, requiredSkills: { intelligence: 35 }, performanceToPromote: 150 },
+                    { id: 'health_medecin', title: 'Médecin', salary: 80, requiredSkills: { intelligence: 75 } }
+                ]
+            },
+            'craft': {
+                name: 'Artisanat',
+                zone: 'industrial',
+                levels: [
+                    { id: 'craft_apprenti', title: 'Apprenti Artisan', salary: 17, requiredSkills: { manual: 10 }, performanceToPromote: 90 },
+                    { id: 'craft_artisan', title: 'Artisan Confirmé', salary: 32, requiredSkills: { manual: 30 }, performanceToPromote: 140 },
+                    { id: 'craft_maitre', title: 'Maître Artisan', salary: 55, requiredSkills: { manual: 60, intelligence: 20 } }
+                ]
             }
-        },
-        {
-            title: "Niveau 2 : Le point-virgule",
-            hint: "Le serveur est un peu plus malin. Il cherche à bloquer les fichiers PHP. Peut-être que le nom du fichier est mal analysé ?",
-            check: (file) => {
-                // Simulation d'une faille où le serveur ne regarde que la première extension
-                // La solution est un fichier comme "shell.php.jpg"
-                const fileName = file.name.toLowerCase();
-                return !fileName.includes('.php') && (fileName.endsWith('.jpg') || fileName.endsWith('.png'));
+        };
+
+        const socialData = {
+            'friend': { name: 'Alex (Ami)', relationship: 60 },
+            'family': { name: 'Famille', relationship: 50 }
+        };
+
+        const luxuryItems = [
+            { id: 'watch', name: 'Montre de luxe', cost: 5000, bonus: { type: 'skill', skill: 'charisma', value: 2 } },
+            { id: 'computer', name: 'Ordinateur surpuissant', cost: 8000, bonus: { type: 'skill_gain', skill: 'intelligence', multiplier: 1.2 } },
+            { id: 'car', name: 'Voiture de sport', cost: 75000, bonus: { type: 'one_time', effect: () => { gameState.needs.happiness = 100; } } }
+        ];
+
+        const lifeEvents = [
+            {
+                id: 'friend_birthday',
+                trigger: () => Math.random() < 0.1,
+                title: "Anniversaire d'Alex",
+                description: "C'est l'anniversaire de votre ami Alex ! Que faites-vous ?",
+                choices: [
+                    { text: "Organiser une super fête (200$)", condition: () => gameState.money >= 200, action: () => { removeMoney(200, "Fête d'anniversaire"); gameState.player.relationships.friend.relationship += 20; gameState.needs.happiness += 25; showNotification("La fête était incroyable !", 'success'); } },
+                    { text: "Lui envoyer un message", condition: () => true, action: () => { gameState.player.relationships.friend.relationship += 5; gameState.needs.happiness += 5; showNotification("Alex a apprécié le geste.", 'info'); } },
+                    { text: "Oublier...", condition: () => true, action: () => { gameState.player.relationships.friend.relationship -= 10; gameState.needs.happiness -= 10; showNotification("Alex est un peu déçu...", 'error'); } }
+                ]
+            },
+            {
+                id: 'family_problem',
+                trigger: () => Math.random() < 0.08,
+                title: "Problème Familial",
+                description: "Un membre de votre famille a un problème financier et vous demande de l'aide.",
+                choices: [
+                    { text: "Envoyer 1000$", condition: () => gameState.money >= 1000, action: () => { removeMoney(1000, "Aide familiale"); gameState.player.relationships.family.relationship += 25; gameState.needs.happiness += 15; } },
+                    { text: "Envoyer 250$", condition: () => gameState.money >= 250, action: () => { removeMoney(250, "Aide familiale"); gameState.player.relationships.family.relationship += 10; gameState.needs.happiness += 5; } },
+                    { text: "Expliquer que vous ne pouvez pas", condition: () => true, action: () => { gameState.player.relationships.family.relationship -= 5; gameState.needs.happiness -= 5; } }
+                ]
+            },
+            {
+                id: 'meet_someone',
+                trigger: () => !gameState.player.relationships.partner && Math.random() < 0.1,
+                title: "Nouvelle Rencontre",
+                description: "Vous avez rencontré quelqu'un d'intéressant. Que faites-vous ?",
+                choices: [
+                    { text: "Proposer un rendez-vous (50$)", condition: () => gameState.money >= 50, action: () => { removeMoney(50, "Rendez-vous"); gameState.player.relationships.partner = { name: 'Partenaire', relationship: 20 }; showNotification("Le rendez-vous s'est bien passé !", 'success'); } },
+                    { text: "Rester discret", condition: () => true, action: () => { showNotification("Peut-être une autre fois.", 'info'); } }
+                ]
             }
-        },
-        {
-            title: "Niveau 3 : La liste noire",
-            hint: "Le serveur utilise une liste noire d'extensions interdites : .php, .php3, .php4, .php5, .phtml. Y a-t-il d'autres extensions qui pourraient être exécutées ?",
-            check: (file) => {
-                // La solution est d'utiliser une extension non listée comme .php7 ou .pht
-                const fileName = file.name.toLowerCase();
-                return fileName.endsWith('.php7') || fileName.endsWith('.pht');
+        ];
+
+        const randomEvents = [
+            { name: "Boom Immobilier", description: "Les prix de l'immobilier et les loyers grimpent en flèche !", effect: () => applyMarketChange(1.2, 1.2, 1.0) },
+            { name: "Crise Économique", description: "Une récession frappe la ville, les revenus des entreprises chutent.", effect: () => applyMarketChange(0.85, 1.0, 0.7) },
+            { name: "Période Faste", description: "L'économie est florissante, les entreprises rapportent plus !", effect: () => applyMarketChange(1.0, 1.0, 1.3) },
+        ];
+
+        const buildingIcons = {
+            residential: ['🏠', '🏡'],
+            commercial: ['🏬', '🏪'],
+            office: ['🏙️', '🏤'],
+            industrial: ['🏭']
+        };
+
+        function generateBusinesses(type, count) {
+            const businesses = [];
+            let templates;
+
+            const commercialTemplates = [
+                { name: 'Pizzeria', basePrice: 25000, baseIncome: 500, category: 'Restauration' },
+                { name: 'Café', basePrice: 18000, baseIncome: 350, category: 'Restauration' },
+                { name: 'Restaurant Asiatique', basePrice: 40000, baseIncome: 700, category: 'Restauration' },
+                { name: 'Bar à Cocktails', basePrice: 55000, baseIncome: 900, category: 'Divertissement' },
+                { name: 'Librairie', basePrice: 30000, baseIncome: 450, category: 'Boutique' },
+                { name: 'Boutique de Vêtements', basePrice: 45000, baseIncome: 650, category: 'Boutique' },
+                { name: 'Cinéma', basePrice: 150000, baseIncome: 2500, category: 'Divertissement' },
+                { name: 'Salle de Sport', basePrice: 80000, baseIncome: 1200, category: 'Service' },
+                { name: 'Fleuriste', basePrice: 15000, baseIncome: 250, category: 'Boutique' },
+                { name: 'Boulangerie', basePrice: 22000, baseIncome: 400, category: 'Restauration' },
+                { name: 'Glacier', basePrice: 19000, baseIncome: 380, category: 'Restauration' },
+                { name: 'Magasin d\'Électronique', basePrice: 90000, baseIncome: 1100, category: 'Boutique' },
+                { name: 'Barbier', basePrice: 28000, baseIncome: 500, category: 'Service' },
+                { name: 'Salon de Tatouage', basePrice: 40000, baseIncome: 750, category: 'Service' },
+                { name: 'Épicerie Fine', basePrice: 35000, baseIncome: 550, category: 'Boutique' },
+                { name: 'Sushi Bar', basePrice: 42000, baseIncome: 720, category: 'Restauration' },
+                { name: 'Magasin de Jeux Vidéo', basePrice: 60000, baseIncome: 800, category: 'Boutique' },
+                { name: 'Animalerie', basePrice: 38000, baseIncome: 500, category: 'Boutique' },
+                { name: 'Spa', basePrice: 75000, baseIncome: 1300, category: 'Service' },
+                { name: 'Galerie d\'Art', basePrice: 120000, baseIncome: 1500, category: 'Divertissement' },
+            ];
+
+            const industrialTemplates = [
+                { name: 'Petit Entrepôt', basePrice: 45000, baseIncome: 900 },
+                { name: 'Usine de Textile', basePrice: 180000, baseIncome: 3500 },
+                { name: 'Atelier de Métallurgie', basePrice: 120000, baseIncome: 2200 },
+                { name: 'Imprimerie', basePrice: 70000, baseIncome: 1300 },
+                { name: 'Centre de Logistique', basePrice: 250000, baseIncome: 5000 },
+                { name: 'Menuiserie', basePrice: 60000, baseIncome: 1100 },
+                { name: 'Garage de Réparation', basePrice: 85000, baseIncome: 1600 },
+                { name: 'Usine Agro-alimentaire', basePrice: 220000, baseIncome: 4500 },
+                { name: 'Brasserie Artisanale', basePrice: 95000, baseIncome: 1800 },
+                { name: 'Centre de Recyclage', basePrice: 150000, baseIncome: 2800 },
+                { name: 'Usine Pharmaceutique', basePrice: 500000, baseIncome: 10000 },
+            ];
+
+            const residentialTemplates = [
+                { name: 'Studio', basePrice: 80000, baseRent: 600, description: '1 pièce, 30m²' },
+                { name: 'Appartement T2', basePrice: 120000, baseRent: 900, description: '2 pièces, 50m²' },
+                { name: 'Appartement T3', basePrice: 180000, baseRent: 1400, description: '3 pièces, 75m²' },
+                { name: 'Condo de Luxe', basePrice: 350000, baseRent: 2500, description: '4 pièces, 120m², Piscine' },
+                { name: 'Maison de Ville', basePrice: 450000, baseRent: 3200, description: '5 pièces, 150m², Jardin' },
+                { name: 'Penthouse', basePrice: 1200000, baseRent: 7000, description: '6 pièces, 250m², Vue Panoramique' },
+            ];
+
+            switch (type) {
+                case 'commercial': templates = commercialTemplates; break;
+                case 'industrial': templates = industrialTemplates; break;
+                case 'residential': templates = residentialTemplates; break;
+                default: return [];
+            }
+
+            for (let i = 0; i < count; i++) {
+                const template = templates[Math.floor(Math.random() * templates.length)];
+                const price = template.basePrice + (Math.random() - 0.5) * (template.basePrice * 0.4);
+                const income = template.baseIncome ? template.baseIncome + (Math.random() - 0.5) * (template.baseIncome * 0.4) : 0;
+                const rent = template.baseRent ? template.baseRent + (Math.random() - 0.5) * (template.baseRent * 0.4) : 0;
+                
+                businesses.push({
+                    id: `${type}${i}`,
+                    name: template.name,
+                    price: Math.round(price / 100) * 100,
+                    income: Math.round(income / 10) * 10,
+                    rent: Math.round(rent / 10) * 10,
+                    category: template.category || 'Industriel',
+                    description: template.description || null,
+                });
+            }
+            return businesses;
+        }
+
+        function createDefaultGameState() {
+            return {
+                money: 500,
+                time: { day: 1, month: 1, hour: 8, minute: 0, timeSinceSleep: 0, lastTransactionDay: 0 },
+                needs: { energy: 100, happiness: 80, hunger: 100 },
+                job: null,
+                loan: null,
+                player: { 
+                    currentLocationId: 'home',
+                    rentedPropertyId: 'player_home',
+                    partner: null,
+                    relationships: JSON.parse(JSON.stringify(socialData)),
+                    transactions: [],
+                    portfolio: { stocks: {} },
+                    skills: { charisma: 0, intelligence: 0, manual: 0 },
+                    inventory: [{ id: 'phone1', name: 'Vieux Smartphone'}]
+                },
+                ownedBusinesses: [],
+                competitors: [],
+                world: {
+                    zones: [
+                        { 
+                            id: 'home', 
+                            name: 'Mon Appartement', 
+                            icon: '🏠', 
+                            actions: [
+                                { label: 'Dormir', onComplete: () => openSleepModal() },
+                                { label: 'Manger (15$)', onComplete: () => eatAtHome() },
+                            ],
+                            businesses: [{
+                                id: 'player_home',
+                                name: 'Votre Appartement',
+                                price: 110000,
+                                rent: 850,
+                                description: '2 pièces, 48m²'
+                            }]
+                        },
+                        { 
+                            id: 'residential_quarter', 
+                            name: 'Quartier Résidentiel', 
+                            icon: '🏘️', 
+                            businesses: generateBusinesses('residential', 60)
+                        },
+                        { 
+                            id: 'park1', 
+                            name: 'Parc Central', 
+                            icon: '🌳', 
+                            actions: [ 
+                                { label: 'Faire du sport', onComplete: () => { gameState.needs.happiness = Math.min(100, gameState.needs.happiness + 20); gameState.needs.energy = Math.max(0, gameState.needs.energy - 15); advanceTime(1); } },
+                                { label: 'Faire un Pique-nique', onComplete: () => { gameState.needs.happiness = Math.min(100, gameState.needs.happiness + 25); gameState.needs.energy = Math.min(100, gameState.needs.energy + 5); advanceTime(2); } }
+                            ] 
+                        },
+                        { 
+                            id: 'park2', 
+                            name: 'Jardin Public', 
+                            icon: '🌳', 
+                            actions: [ 
+                                { label: 'Admirer les fleurs', onComplete: () => { gameState.needs.happiness = Math.min(100, gameState.needs.happiness + 15); advanceTime(1); } },
+                                { label: 'Nourrir les canards', onComplete: () => { gameState.needs.happiness = Math.min(100, gameState.needs.happiness + 10); advanceTime(0.5); } }
+                            ] 
+                        },
+                        { 
+                            id: 'park3', 
+                            name: 'Square du Quartier', 
+                            icon: '🌳', 
+                            actions: [ 
+                                { label: 'Lire sur un banc', onComplete: () => { gameState.needs.happiness = Math.min(100, gameState.needs.happiness + 20); advanceTime(2); } },
+                                { label: 'Méditer', onComplete: () => { gameState.needs.happiness = Math.min(100, gameState.needs.happiness + 15); gameState.needs.energy = Math.min(100, gameState.needs.energy + 10); advanceTime(1); } }
+                            ] 
+                        },
+                        { 
+                            id: 'industrial', 
+                            name: 'Zone Industrielle', 
+                            icon: '🏭', 
+                            actions: [],
+                            businesses: generateBusinesses('industrial', 35)
+                        },
+                        { 
+                            id: 'commercial', 
+                            name: 'Zone Commerciale', 
+                            icon: '🛒', 
+                            actions: [ { label: 'Lèche-vitrine', onComplete: () => { gameState.needs.happiness = Math.min(100, gameState.needs.happiness + 10); advanceTime(1); } } ],
+                            businesses: generateBusinesses('commercial', 45)
+                        },
+                        {
+                            id: 'university',
+                            name: 'Université',
+                            icon: '🎓',
+                            actions: [
+                                { label: 'Étudier (100$)', onComplete: () => improveSkill('intelligence', 100) },
+                                { label: 'Cours de communication (100$)', onComplete: () => improveSkill('charisma', 100) },
+                                { label: 'Formation manuelle (100$)', onComplete: () => improveSkill('manual', 100) },
+                            ]
+                        },
+                        {
+                            id: 'airport',
+                            name: 'Aéroport',
+                            icon: '✈️',
+                            actions: []
+                        }
+                        ,
+                        {
+                            id: 'office',
+                            name: 'Quartier des Affaires',
+                            icon: '🏙️',
+                            actions: [],
+                            businesses: generateBusinesses('office', 20)
+                        },
+                        {
+                            id: 'hospital',
+                            name: 'Hôpital',
+                            icon: '🏥',
+                            actions: []
+                        },
+                        {
+                            id: 'luxury_mall',
+                            name: 'Centre Commercial de Luxe',
+                            icon: '💎',
+                            actions: []
+                        }
+                    ],
+                    stocks: [
+                        { symbol: 'TECH', name: 'TechCorp', price: 100, volatility: 2, history: [100] },
+                        { symbol: 'NRG', name: 'Energy Inc.', price: 50, volatility: 3, history: [50] },
+                        { symbol: 'REAL', name: 'Realty Global', price: 75, volatility: 1.5, history: [75] },
+                        { symbol: 'FOOD', name: 'Global Foods', price: 60, volatility: 1, history: [60] }
+                    ],
+                },
+                customBusinesses: [],
+            };
+        }
+
+        function createCompetitors() {
+            gameState.competitors.push({ name: 'Isabelle Moreau', money: 1000, netWorth: 1000, ownedBusinesses: [] });
+            gameState.competitors.push({ name: 'Marc Dubois', money: 800, netWorth: 800, ownedBusinesses: [] });
+            gameState.competitors.push({ name: 'Sofia Rossi', money: 1200, netWorth: 1200, ownedBusinesses: [] });
+        }
+
+        function switchScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById(screenId).classList.add('active');
+            
+            if (screenId === 'game-screen' && !gameInterval) {
+                gameInterval = setInterval(gameLoop, GAME_TICK_MS);
+            } else if (screenId !== 'game-screen' && gameInterval) {
+                clearInterval(gameInterval);
+                gameInterval = null;
             }
         }
-    ];
 
-    let currentLevel = 0;
+        function startGame(state) {
+            gameState = state;
+            if (gameState.competitors.length === 0) createCompetitors();
+            renderUI();
+            updateActionButtons();
+            switchScreen('game-screen');
+        }
 
-    // ... Le reste du script JavaScript pour faire fonctionner le jeu ...
-    // (Ce script sera complété dans la prochaine étape)
-</script>
+        document.getElementById('new-game-btn').addEventListener('click', () => {
+            startGame(createDefaultGameState());
+        });
 
+        document.getElementById('continue-btn').addEventListener('click', () => {
+            const savedState = localStorage.getItem(SAVE_KEY);
+            if (savedState) {
+                startGame(JSON.parse(savedState));
+            } else {
+                alert("Aucune partie sauvegardée trouvée.");
+            }
+        });
+
+        document.getElementById('close-options-btn').addEventListener('click', () => {
+            document.getElementById('options-modal').classList.remove('active');
+        });
+
+        document.getElementById('reset-game-btn').addEventListener('click', () => {
+            if (confirm("Êtes-vous sûr de vouloir réinitialiser votre partie ? Toute votre progression sera perdue.")) {
+                localStorage.removeItem(SAVE_KEY);
+                window.location.reload();
+            }
+        });
+
+        document.getElementById('options-btn').addEventListener('click', () => {
+            document.getElementById('options-modal').classList.add('active');
+        });
+
+        function renderUI() {
+            if (!gameState) return;
+
+            document.querySelector('#header #money-display').textContent = `${Math.floor(gameState.money)} $`;
+            const hour = Math.floor(gameState.time.hour).toString().padStart(2, '0');
+            const minute = Math.floor(gameState.time.minute).toString().padStart(2, '0');
+            document.querySelector('#header #time-display').textContent = `Jour ${gameState.time.day} - ${hour}:${minute}`;
+
+        }
+
+        function gameLoop() {
+            if (!gameState) return;
+
+            const timeSpeed = 1 * (GAME_TICK_MS / 1000);
+            gameState.time.minute += timeSpeed;
+            if (gameState.time.minute >= 60) {
+                gameState.time.minute = 0;
+                gameState.time.hour++;
+                gameState.time.timeSinceSleep++;
+            }
+            if (gameState.time.hour >= 24) {
+                gameState.time.hour = 0;
+                collectDailyIncome();
+                gameState.time.day++;
+                if (gameState.time.day > 30) {
+                    gameState.time.day = 1;
+                    gameState.time.month++;
+
+                    if (gameState.job) {
+                        let fireChance = 0;
+                        if (gameState.job.performance < 20) fireChance += 10;
+                        if (gameState.needs.happiness < 10) fireChance += 15;
+                        if (Math.random() * 100 < fireChance) {
+                            showNotification(`Vous avez été licencié pour manque de performance !`, 'error');
+                            gameState.job = null;
+                        }
+                    }
+
+                    lifeEvents.forEach(event => {
+                        if (event.trigger()) {
+                            clearInterval(gameInterval);
+                            showLifeEvent(event);
+                        }
+                    });
+
+                    if (gameState.player.partner && gameState.player.partner.relationship > 90 && !gameState.player.partner.isMarried && Math.random() < 0.2) {
+                        clearInterval(gameInterval);
+                        showLifeEvent({
+                            id: 'proposal', title: "Demande en Mariage", description: "Votre relation est au beau fixe. Voulez-vous demander votre partenaire en mariage ?",
+                            choices: [
+                                { text: "Faire la grande demande", condition: () => true, action: () => { gameState.player.partner.isMarried = true; gameState.needs.happiness = 100; showNotification("Félicitations pour votre mariage !", 'success'); } },
+                                { text: "Attendre encore un peu", condition: () => true, action: () => { gameState.player.partner.relationship -= 5; } }
+                            ]
+                        });
+                    }
+                    if (gameState.player.partner && gameState.player.partner.isMarried && !gameState.player.hasChild && Math.random() < 0.1) {
+                        // Event to have a child
+                    }
+
+                    processMonthlyBills();
+                    if (Math.random() < 0.33) {
+                        const event = randomEvents[Math.floor(Math.random() * randomEvents.length)];
+                        event.effect();
+                        showNotification(`Événement: ${event.description}`, 'info');
+                    }
+                }
+            }
+
+            let energyDecay = 0.005;
+            if (gameState.needs.hunger < 20) energyDecay += 0.01; 
+            if (gameState.time.timeSinceSleep > 20) energyDecay += 0.02; 
+            gameState.needs.energy = Math.max(0, gameState.needs.energy - energyDecay);
+            gameState.needs.hunger = Math.max(0, gameState.needs.hunger - 0.05);
+            let happinessDecay = 0.01;
+            if (gameState.needs.hunger < 10) happinessDecay += 0.01;
+            if (gameState.needs.energy < 10) happinessDecay += 0.01;
+
+            Object.values(gameState.player.relationships).forEach(rel => {
+                rel.relationship = Math.max(0, rel.relationship - 0.02);
+                if (rel.relationship < 20) happinessDecay += 0.005;
+            });
+            gameState.needs.happiness = Math.max(0, gameState.needs.happiness - happinessDecay);
+            renderUI();
+
+            if (Math.random() < 0.1) {
+                gameState.world.stocks.forEach(stock => {
+                    const change = (Math.random() - 0.49) * stock.volatility;
+                    stock.price = Math.max(1, stock.price + change);
+                    stock.history.push(stock.price);
+                    if (stock.history.length > 50) stock.history.shift();
+                });
+            }
+
+            gameState.competitors.forEach(competitor => {
+                // Simple AI logic: if they have a lot of cash, they might buy a property
+                if (competitor.money > 20000 && Math.random() < 0.05) {
+                    const availableBusinesses = [];
+                    gameState.world.zones.forEach(zone => {
+                        if (zone.businesses) availableBusinesses.push(...zone.businesses);
+                    });
+                    const affordableBusinesses = availableBusinesses.filter(b => b.price < competitor.money && !isBusinessOwned(b.id));
+                    if (affordableBusinesses.length > 0) {
+                        const target = affordableBusinesses[Math.floor(Math.random() * affordableBusinesses.length)];
+                        competitor.money -= target.price;
+                        competitor.ownedBusinesses.push(target.id);
+                    }
+                }
+            });
+
+            renderUI();
+        }
+
+        function collectDailyIncome() {
+            if (!gameState || gameState.ownedBusinesses.length === 0) return;
+
+            let totalIncome = 0;
+            gameState.ownedBusinesses.forEach(businessId => {
+                const business = findBusinessById(businessId);
+                if (business && business.income > 0) {
+                    totalIncome += business.income;
+                }
+            });
+
+            if (totalIncome > 0) {
+                addMoney(totalIncome, "Revenus quotidiens des entreprises");
+                showNotification(`Revenus quotidiens: +${totalIncome.toLocaleString()}$`, 'success');
+            }
+        }
+
+        function processMonthlyBills() {
+            const taxRate = 0.20;
+            let totalIncome = 0;
+            let totalRentIncome = 0;
+
+            gameState.ownedBusinesses.forEach(businessId => {
+                const business = findBusinessById(businessId);
+                if (business) {
+                    if (business.income > 0) {
+                        totalIncome += business.income * 30;
+                    }
+                    if (business.rent > 0 && business.id !== gameState.player.rentedPropertyId) {
+                        totalRentIncome += business.rent;
+                    }
+                }
+            });
+
+            if (gameState.job) {
+                const monthlySalary = gameState.job.salary * 8 * 20;
+                const currentJob = getCurrentJobDetails();
+                totalIncome += currentJob.salary * 8 * 20;
+                addMoney(currentJob.salary * 8 * 20, `Salaire mensuel (${currentJob.title})`);
+            }
+
+            const taxAmount = totalIncome * taxRate;
+            if (taxAmount > 0) {
+                removeMoney(taxAmount, "Impôt sur le revenu");
+                showNotification(`Impôt sur le revenu payé: -${taxAmount.toLocaleString()}$`, 'error');
+            }
+
+            if (totalRentIncome > 0) {
+                addMoney(totalRentIncome, "Revenus locatifs");
+                showNotification(`Revenus locatifs perçus: +${totalRentIncome.toLocaleString()}$`, 'success');
+            }
+
+            const rentedHome = findBusinessById(gameState.player.rentedPropertyId);
+            if (rentedHome && !gameState.ownedBusinesses.includes(rentedHome.id)) {
+                removeMoney(rentedHome.rent, `Loyer (${rentedHome.name})`);
+                showNotification(`Loyer payé: -${rentedHome.rent.toLocaleString()}$`, 'error');
+            }
+
+            if (gameState.loan && gameState.loan.remainingPayments > 0) {
+                removeMoney(gameState.loan.monthlyPayment, "Remboursement du prêt");
+                gameState.loan.remainingPayments--;
+                showNotification(`Remboursement du prêt: -${gameState.loan.monthlyPayment.toLocaleString()}$`, 'error');
+                if (gameState.loan.remainingPayments <= 0) gameState.loan = null;
+            }
+        }
+
+        function advanceTime(hours) {
+            const startHour = gameState.time.hour;
+            const endHour = (startHour + hours) % 24;
+
+            gameState.needs.energy = Math.min(100, gameState.needs.energy + hours * 12.5);
+            gameState.time.timeSinceSleep = 0;
+
+            const sleepAnim = document.getElementById('sleep-animation');
+            sleepAnim.classList.add('active');
+
+            gameState.time.hour += hours;
+            while (gameState.time.hour >= 24) {
+                gameState.time.hour -= 24;
+                gameState.time.day++;
+            }
+
+            setTimeout(() => sleepAnim.classList.remove('active'), 1500);
+        }
+
+        function improveSkill(skill, cost) {
+            if (gameState.money >= cost) {
+                let skillGain = 1;
+                if (skill === 'intelligence' && hasItem('computer')) skillGain *= 1.2;
+                removeMoney(cost, `Formation (${skill})`);
+                gameState.player.skills[skill] += Math.round(skillGain);
+                gameState.needs.energy -= 10;
+                advanceTime(3);
+                showNotification(`Compétence ${skill} améliorée !`, 'success');
+                renderUI();
+            } else {
+                showNotification("Fonds insuffisants pour étudier.", 'error');
+            }
+        }
+
+        function eatAtHome() {
+            if (gameState.money >= 15) {
+                removeMoney(15, "Repas à la maison");
+                gameState.needs.hunger = Math.min(100, gameState.needs.hunger + 60);
+                advanceTime(0.5);
+                showNotification("Vous avez mangé un bon repas.", 'success');
+            } else {
+                showNotification("Pas assez d'argent pour manger.", 'error');
+            }
+        }
+
+        function hasItem(itemId) {
+            return gameState.player.inventory.some(item => item.id === itemId);
+        }
+
+        const mapStyle = `
+            .location-icon { position: absolute; cursor: pointer; font-size: 2.5rem; transform: translate(-50%, -50%); transition: transform 0.2s; }
+            .location-icon:hover { transform: translate(-50%, -50%) scale(1.2); }
+            #player-marker { position: absolute; width: 20px; height: 20px; background-color: #e74c3c; border-radius: 50%; border: 2px solid white; transform: translate(-50%, -50%); transition: all 1s ease-in-out; }
+        `;
+
+        function findBusinessById(businessId) {
+            for (const zone of gameState.world.zones) {
+                if (zone.businesses) {
+                    const business = zone.businesses.find(b => b.id === businessId);
+                    if (business) return business;
+                }
+            }
+            const customBusiness = gameState.customBusinesses.find(b => b.id === businessId);
+            if (customBusiness) return customBusiness;
+            return null;
+        }
+
+        window.buyBusiness = function(businessId) {
+            const business = findBusinessById(businessId);
+            if (!business) return;
+
+            if (gameState.money >= business.price) {
+                removeMoney(business.price, `Achat: ${business.name}`);
+                gameState.ownedBusinesses.push(business.id);
+                showNotification(`Félicitations ! Vous avez acheté "${business.name}".`, 'success');
+                updateActionButtons();
+                renderUI();
+            } else {
+                alert("Fonds insuffisants !");
+            }
+        }
+
+        window.rentProperty = function(propertyId) {
+            const newProperty = findBusinessById(propertyId);
+            if (!newProperty) return;
+
+            if (gameState.money >= newProperty.rent) {
+                removeMoney(newProperty.rent, `Premier loyer: ${newProperty.name}`);
+                gameState.player.rentedPropertyId = newProperty.id;
+                
+                const homeZone = gameState.world.zones.find(z => z.id === 'home');
+                homeZone.name = `Mon ${newProperty.name}`;
+
+                showNotification(`Vous avez emménagé dans: ${newProperty.name}. Premier loyer payé.`, 'success');
+                updateActionButtons();
+                renderUI();
+            } else {
+                alert("Fonds insuffisants pour le premier loyer !");
+            }
+        }
+
+        window.showSellOffers = function(businessId) {
+            const business = findBusinessById(businessId);
+            if (!business) return;
+
+            const sellModal = document.getElementById('sell-modal');
+            document.getElementById('sell-modal-title').textContent = `Offres pour: ${business.name}`;
+            const offersList = document.getElementById('offers-list');
+            offersList.innerHTML = '';
+
+            const offerCount = 2 + Math.floor(Math.random() * 2);
+            const buyers = ['Investisseur local', 'Grand conglomérat', 'Jeune couple', 'Spéculateur immobilier'];
+            for (let i = 0; i < offerCount; i++) {
+                const offerPrice = business.price * (0.9 + Math.random() * 0.25);
+                const offerEl = document.createElement('div');
+                offerEl.className = 'job-listing';
+                offerEl.innerHTML = `<div><h4>${buyers[Math.floor(Math.random() * buyers.length)]}</h4><p>Offre: ${Math.round(offerPrice).toLocaleString()}$</p></div><button class="menu-btn" onclick="sellProperty('${businessId}', ${Math.round(offerPrice)})">Accepter</button>`;
+                offersList.appendChild(offerEl);
+            }
+            sellModal.classList.add('active');
+        }
+
+        function renderOwnedBusinesses() {
+            const listEl = document.getElementById('owned-businesses-list');
+            listEl.innerHTML = '';
+            gameState.ownedBusinesses.forEach(businessId => {
+                const business = findBusinessById(businessId);
+                if (business) {
+                    const itemEl = document.createElement('p');
+                    let incomeString = '';
+                    if (business.income > 0) {
+                        incomeString = ` (+${business.income.toLocaleString()}$/j)`;
+                    } else if (business.rent > 0) {
+                        incomeString = ` (Revenu locatif: +${business.rent.toLocaleString()}$/m)`;
+                    }
+                    itemEl.innerHTML = `<strong>${business.name}</strong>${incomeString}`;
+                    listEl.appendChild(itemEl);
+                }
+            });
+        }
+
+    function updateActionButtons() {
+        const currentLocation = gameState.world.zones.find(z => z.id === gameState.player.currentLocationId);
+        const actionButtonsContainer = document.getElementById('contextual-actions');
+        actionButtonsContainer.innerHTML = '';
+
+        const actionsWrapper = document.createElement('div');
+
+        if (gameState.job && jobsData[gameState.job.trackId].zone === gameState.player.currentLocationId) {
+            const workBtn = document.createElement('button');
+            workBtn.className = 'menu-btn';
+            workBtn.textContent = 'Travailler dur';
+            workBtn.onclick = workHarder;
+            actionsWrapper.appendChild(workBtn);
+
+            const promotionProgress = document.createElement('p');
+            const currentJob = getCurrentJobDetails();
+            const performanceNeeded = currentJob.performanceToPromote || 'MAX';
+            promotionProgress.innerHTML = `Performance: ${gameState.job.performance} / ${performanceNeeded}`;
+            actionsWrapper.appendChild(promotionProgress);
+        }
+
+        actionsWrapper.style.display = 'flex';
+        actionsWrapper.style.flexDirection = 'column';
+        actionsWrapper.style.gap = '1rem';
+
+        if (currentLocation) {
+            document.getElementById('main-panel-title').textContent = `Actions à: ${currentLocation.name}`;
+            
+            if (currentLocation.id === 'office') {
+                const createBizBtn = document.createElement('button');
+                createBizBtn.className = 'menu-btn';
+                createBizBtn.textContent = 'Créer une entreprise';
+                createBizBtn.onclick = () => showCreateBusinessForm();
+                actionsWrapper.appendChild(createBizBtn);
+            }
+            if (currentLocation.id === 'airport') {
+                const vacations = [
+                    { name: 'Week-end à la plage', durationDays: 2, cost: 500 },
+                    { name: 'Semaine à la montagne', durationDays: 7, cost: 2000 }
+                ];
+                vacations.forEach(vacation => {
+                    const btn = document.createElement('button');
+                    btn.className = 'menu-btn';
+                    btn.textContent = `${vacation.name} (${vacation.cost}$)`;
+                    btn.onclick = () => takeVacation(vacation);
+                    actionsWrapper.appendChild(btn);
+                });
+            }
+            if (currentLocation.id === 'luxury_mall') {
+                luxuryItems.forEach(item => {
+                    if (!gameState.player.inventory.find(i => i.id === item.id)) {
+                        const btn = document.createElement('button');
+                        btn.className = 'menu-btn';
+                        btn.textContent = `Acheter ${item.name} (${item.cost.toLocaleString()}$)`;
+                        btn.onclick = () => buyLuxuryItem(item.id);
+                        actionsWrapper.appendChild(btn);
+                    }
+                });
+            }
+
+            if (currentLocation.actions) {
+                currentLocation.actions.forEach(action => {
+                    const btn = document.createElement('button');
+                    btn.className = 'menu-btn';
+                    btn.textContent = action.label;
+                    btn.onclick = action.onComplete;
+                    actionsWrapper.appendChild(btn);
+                });
+            }
+
+            if (currentLocation.businesses && currentLocation.businesses.length > 0) {
+                const exploreBtn = document.createElement('button');
+                exploreBtn.className = 'menu-btn';
+                exploreBtn.textContent = `Explorer les propriétés (${currentLocation.businesses.length})`;
+                exploreBtn.onclick = () => renderBusinessList(currentLocation);
+                actionsWrapper.appendChild(exploreBtn);
+            }
+
+            actionButtonsContainer.appendChild(actionsWrapper);
+
+            if (actionButtonsContainer.childElementCount === 0) {
+                actionButtonsContainer.innerHTML = '<p>Rien à faire ici pour le moment.</p>';
+            }
+        } else {
+            actionButtonsContainer.innerHTML = '<p>Déplacez-vous pour voir les actions.</p>';
+        }
+    }
+
+    function renderBusinessList(zone) {
+        const actionButtonsContainer = document.getElementById('contextual-actions');
+        actionButtonsContainer.innerHTML = '';
+
+        const backBtn = document.createElement('button');
+        backBtn.className = 'menu-btn';
+        backBtn.textContent = 'Retour';
+        backBtn.style.marginBottom = '1rem';
+        backBtn.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+        backBtn.onclick = () => updateActionButtons();
+        actionButtonsContainer.appendChild(backBtn);
+
+        const categories = ['Toutes les catégories', ...new Set(zone.businesses.map(b => b.category || 'Autre'))];
+        
+        if (categories.length > 2) {
+            const filterContainer = document.createElement('div');
+            filterContainer.style.display = 'flex';
+            filterContainer.style.gap = '1rem';
+            filterContainer.style.flexWrap = 'wrap';
+            filterContainer.style.marginBottom = '1rem';
+
+            categories.forEach(category => {
+                const btn = document.createElement('button');
+                btn.textContent = category;
+                btn.className = 'menu-btn';
+                btn.style.padding = '0.5rem 1rem';
+                btn.style.fontSize = '0.9rem';
+                btn.onclick = () => {
+                    document.querySelectorAll('.business-listing').forEach(el => {
+                        el.style.display = (category === 'Toutes les catégories' || el.dataset.category === category) ? 'flex' : 'none';
+                    });
+                };
+                filterContainer.appendChild(btn);
+            });
+            actionButtonsContainer.appendChild(filterContainer);
+        }
+
+        zone.businesses.forEach(business => {
+            const businessEl = document.createElement('div');
+            businessEl.className = 'business-listing';
+
+            const isOwned = gameState.ownedBusinesses.includes(business.id);
+            const isRented = gameState.player.rentedPropertyId === business.id;
+
+            let buttonHtml;
+            if (isOwned) {
+                buttonHtml = `<button class="menu-btn" style="background-color: #e67e22;" onclick="showSellOffers('${business.id}')">Vendre</button>`;
+            } else if (isRented) {
+                buttonHtml = `<div class="owned-tag" style="background-color: var(--primary-color); color: white; border-color: var(--primary-color);">Loué</div>`;
+            } else if (business.rent > 0 && business.income === 0) {
+                buttonHtml = `
+                    <div style="display: flex; gap: 1rem;">
+                        <button class="menu-btn" style="background-color: var(--success-color); flex: 1;" onclick="rentProperty('${business.id}')" ${gameState.money < business.rent ? 'disabled' : ''}>Louer (${business.rent.toLocaleString()}$/mois)</button>
+                        <button class="menu-btn" style="flex: 2;" onclick="buyBusiness('${business.id}')" ${gameState.money < business.price ? 'disabled' : ''}>Acheter (${business.price.toLocaleString()}$)</button>
+                    </div>`;
+            } else {
+                buttonHtml = `<button class="menu-btn" onclick="buyBusiness('${business.id}')" ${gameState.money < business.price ? 'disabled' : ''}>Acheter (${business.price.toLocaleString()}$)</button>`;
+            }
+
+            const incomeText = business.income > 0 ? `<p class="business-details">Revenu: ${business.income.toLocaleString()}$ / jour</p>` : '';
+            const rentText = business.rent > 0 ? `<p class="business-details">Loyer / Revenu locatif: ${business.rent.toLocaleString()}$ / mois</p>` : '';
+            const descriptionText = business.description ? `<p class="business-details">${business.description}</p>` : (business.category ? `<p class="business-details">Catégorie: ${business.category || 'Autre'}</p>` : '');
+
+            businessEl.innerHTML = `
+                <div>
+                    <h4>${business.name}</h4>
+                    <div class="business-details">
+                        ${descriptionText}
+                        ${incomeText}
+                        ${rentText}
+                    </div>
+                </div>
+                <div style="min-width: 250px; text-align: right;">
+                    ${buttonHtml}
+                </div>
+            `;
+            businessEl.dataset.category = business.category || 'Autre';
+            actionButtonsContainer.appendChild(businessEl);
+        });
+    }
+
+    function openSleepModal() {
+        const sleepModal = document.getElementById('sleep-modal');
+        const sleepOptions = document.getElementById('sleep-options');
+        sleepOptions.innerHTML = '';
+
+        const options = [
+            { label: 'Sieste (2h)', hours: 2 },
+            { label: 'Bonne nuit (6h)', hours: 6 },
+            { label: 'Nuit complète (8h)', hours: 8 },
+        ];
+
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'menu-btn';
+            btn.textContent = opt.label;
+            btn.onclick = () => {
+                advanceTime(opt.hours);
+                sleepModal.classList.remove('active');
+            };
+            sleepOptions.appendChild(btn);
+        });
+
+        sleepModal.classList.add('active');
+    }
+
+    function applyMarketChange(priceMod, rentMod, incomeMod) {
+        gameState.world.zones.forEach(zone => {
+            if (zone.businesses) {
+                zone.businesses.forEach(business => {
+                    business.price = Math.round(business.price * priceMod);
+                    if (business.rent > 0) {
+                        business.rent = Math.round(business.rent * rentMod);
+                    }
+                    if (business.income > 0) {
+                        business.income = Math.round(business.income * incomeMod);
+                    }
+                });
+            }
+        });
+    }
+
+    function travelTo(zone) {
+        gameState.player.currentLocationId = zone.id;
+        updateActionButtons();
+    }
+
+    function openInventory() {
+        const inventoryModal = document.getElementById('inventory-modal');
+        const inventoryList = document.getElementById('inventory-list');
+        inventoryList.innerHTML = '';
+        if (gameState.player.inventory.length === 0) {
+            inventoryList.innerHTML = '<p>Votre inventaire est vide.</p>';
+        } else {
+            gameState.player.inventory.forEach(item => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'job-listing';
+                itemEl.textContent = item.name;
+                inventoryList.appendChild(itemEl);
+            });
+        }
+        inventoryModal.classList.add('active');
+    }
+
+    function initialize() {
+        const continueBtn = document.getElementById('continue-btn');
+        if (!localStorage.getItem(SAVE_KEY)) {
+            continueBtn.disabled = true;
+        }
+
+        document.getElementById('travel-btn').addEventListener('click', () => {
+            const travelModal = document.getElementById('travel-modal');
+            const locationsList = document.getElementById('locations-list');
+            locationsList.innerHTML = '';
+
+            gameState.world.zones.forEach(zone => {
+                const locationEl = document.createElement('div');
+                locationEl.className = 'job-listing';
+                let zoneName = zone.name;
+                if (zone.id === 'home') {
+                    const currentHome = findBusinessById(gameState.player.rentedPropertyId);
+                    zoneName = currentHome ? `Mon ${currentHome.name}` : zone.name;
+                }
+                locationEl.innerHTML = `<h4>${zone.icon} ${zoneName}</h4>`;
+
+                if (zone.id === gameState.player.currentLocationId) {
+                    locationEl.style.backgroundColor = 'rgba(82, 148, 226, 0.3)';
+                } else {
+                    locationEl.style.cursor = 'pointer';
+                    locationEl.onclick = () => {
+                        travelTo(zone);
+                        travelModal.classList.remove('active');
+                    };
+                }
+                locationsList.appendChild(locationEl);
+            });
+            travelModal.classList.add('active');
+        });
+
+        document.getElementById('travel-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'travel-modal') {
+                document.getElementById('travel-modal').classList.remove('active');
+            }
+        });
+
+        document.getElementById('refuse-sell-btn').addEventListener('click', () => {
+            document.getElementById('sell-modal').classList.remove('active');
+        });
+
+        document.getElementById('sell-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'sell-modal') {
+                document.getElementById('sell-modal').classList.remove('active');
+            }
+        });
+
+        document.getElementById('event-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'event-modal') {
+            }
+        });
+
+        document.getElementById('close-history-btn').addEventListener('click', () => {
+            document.getElementById('history-modal').classList.remove('active');
+        });
+
+        document.getElementById('cancel-sleep-btn').addEventListener('click', () => {
+            document.getElementById('sleep-modal').classList.remove('active');
+        });
+
+        document.getElementById('sleep-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'sleep-modal') {
+                document.getElementById('sleep-modal').classList.remove('active');
+            }
+        });
+
+        document.getElementById('close-inventory-btn').addEventListener('click', () => {
+            document.getElementById('inventory-modal').classList.remove('active');
+        });
+         document.getElementById('inventory-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'inventory-modal') {
+                document.getElementById('inventory-modal').classList.remove('active');
+            }
+        });
+
+        document.getElementById('back-to-menu-btn').addEventListener('click', () => {
+            if (gameState) {
+                localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+                document.getElementById('continue-btn').disabled = false;
+            }
+            switchScreen('main-menu');
+        });
+
+        document.getElementById('status-app-btn').addEventListener('click', () => togglePhoneApp('status'));
+        document.getElementById('needs-app-btn').addEventListener('click', () => togglePhoneApp('needs'));
+        document.getElementById('bank-app-btn').addEventListener('click', () => togglePhoneApp('bank'));
+        document.getElementById('portfolio-app-btn').addEventListener('click', () => togglePhoneApp('portfolio'));
+
+        document.getElementById('stocks-app-btn').addEventListener('click', () => togglePhoneApp('stocks'));
+        document.getElementById('jobs-app-btn').addEventListener('click', () => togglePhoneApp('jobs'));
+        document.getElementById('social-app-btn').addEventListener('click', () => togglePhoneApp('social'));
+        document.getElementById('inventory-app-btn').addEventListener('click', () => togglePhoneApp('inventory'));
+        document.getElementById('ranking-app-btn').addEventListener('click', () => togglePhoneApp('ranking'));
+
+        const styleSheet = document.createElement("style");
+        styleSheet.innerText = mapStyle;
+        document.head.appendChild(styleSheet);
+    }
+
+    function showNotification(message, type = 'success') {
+        const notif = document.createElement('div');
+        notif.className = `notification ${type}`;
+        notif.textContent = message;
+        document.getElementById('notification-container').appendChild(notif);
+        setTimeout(() => notif.remove(), 3500);
+    }
+
+    function sellProperty(businessId, price) {
+        const businessIndex = gameState.ownedBusinesses.findIndex(id => id === businessId);
+        if (businessIndex > -1) {
+            const business = findBusinessById(businessId);
+            addMoney(price, `Vente: ${business.name}`);
+            gameState.ownedBusinesses.splice(businessIndex, 1);
+            showNotification(`Vous avez vendu "${business.name}" pour ${price.toLocaleString()}$ !`, 'success');
+            document.getElementById('sell-modal').classList.remove('active');
+            renderBusinessList(gameState.world.zones.find(z => z.id === gameState.player.currentLocationId));
+            renderUI();
+        }
+    }
+
+    function logTransaction(description, amount) {
+        gameState.player.transactions.push({ description, amount });
+        if (gameState.player.transactions.length > 50) {
+            gameState.player.transactions.shift();
+        }
+    }
+    function addMoney(amount, description) {
+        gameState.money += amount;
+        logTransaction(description, amount);
+    }
+    function removeMoney(amount, description) {
+        gameState.money -= amount;
+        logTransaction(description, -amount);
+    }
+
+    function openHistoryModal() {
+        const historyModal = document.getElementById('history-modal');
+        const historyList = document.getElementById('history-list');
+        historyList.innerHTML = '';
+
+        if (gameState.player.transactions.length === 0) {
+            historyList.innerHTML = '<p>Aucune transaction.</p>';
+        } else {
+            [...gameState.player.transactions].reverse().forEach(tx => {
+                const txEl = document.createElement('div');
+                txEl.className = 'job-listing';
+                const amountColor = tx.amount > 0 ? 'var(--success-color)' : '#e74c3c';
+                txEl.innerHTML = `
+                    <span>${tx.description}</span>
+                    <span style="color: ${amountColor}; font-weight: bold;">${tx.amount.toLocaleString()}$</span>
+                `;
+                historyList.appendChild(txEl);
+            });
+        }
+        historyModal.classList.add('active');
+    }
+
+    function updateBankUI(container = null) {
+        const loanInfoContainer = container || document.getElementById('loan-info');
+        loanInfoContainer.innerHTML = '';
+
+        if (gameState.loan) {
+            const remainingAmount = gameState.loan.monthlyPayment * gameState.loan.remainingPayments;
+            loanInfoContainer.innerHTML = `
+                <p><strong>Prêt en cours</strong></p>
+                <p>Restant: ${remainingAmount.toLocaleString()}$</p>
+                <p>Paiement: ${gameState.loan.monthlyPayment.toLocaleString()}$/mois</p>
+                <p>Échéances: ${gameState.loan.remainingPayments}</p>
+            `;
+        } else {
+            const loanOptions = [
+                { amount: 5000, term: 6 },
+                { amount: 20000, term: 12 },
+            ];
+            loanOptions.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'menu-btn';
+                btn.style.fontSize = '0.8rem';
+                btn.style.padding = '0.6rem';
+                btn.style.marginBottom = '0.4rem';
+                btn.textContent = `Emprunter ${opt.amount.toLocaleString()}$`;
+                btn.onclick = () => takeLoan(opt.amount, opt.term);
+                loanInfoContainer.appendChild(btn);
+            });
+        }
+    }
+
+    function takeLoan(amount, term) {
+        if (gameState.loan) {
+            showNotification("Vous avez déjà un prêt en cours.", 'error');
+            return;
+        }
+        const interestRate = 1.1;
+        const totalToRepay = amount * interestRate;
+        const monthlyPayment = Math.ceil(totalToRepay / term);
+
+        gameState.loan = {
+            principal: amount,
+            monthlyPayment: monthlyPayment,
+            remainingPayments: term
+        };
+
+        addMoney(amount, `Prêt de ${amount.toLocaleString()}$`);
+        showNotification(`Vous avez emprunté ${amount.toLocaleString()}$ !`, 'success');
+        updateBankUI();
+    }
+
+    function getCurrentJobDetails() {
+        if (!gameState.job) return null;
+        const track = jobsData[gameState.job.trackId];
+        if (!track) return null;
+        return track.levels[gameState.job.levelIndex];
+    }
+
+    function workHarder() {
+        gameState.job.performance += 5;
+        gameState.needs.energy -= 15;
+        advanceTime(2);
+        showNotification("Vous avez bien travaillé !", 'success');
+        checkForPromotion();
+        updateActionButtons();
+    }
+
+    function checkForPromotion() {
+        const currentJob = getCurrentJobDetails();
+        const track = jobsData[gameState.job.trackId];
+
+        if (!currentJob.performanceToPromote || gameState.job.levelIndex >= track.levels.length - 1) {
+            return;
+        }
+
+        if (gameState.job.performance >= currentJob.performanceToPromote) {
+            const nextJob = track.levels[gameState.job.levelIndex + 1];
+            let canPromote = true;
+            for (const skill in nextJob.requiredSkills) {
+                if (gameState.player.skills[skill] < nextJob.requiredSkills[skill]) {
+                    canPromote = false;
+                    break;
+                }
+            }
+
+            if (canPromote) {
+                gameState.job.levelIndex++;
+                gameState.job.performance = 0;
+                showNotification(`Félicitations ! Vous avez été promu: ${nextJob.title}`, 'success');
+            } else {
+                showNotification("Vous avez la performance pour une promotion, mais pas les compétences requises.", 'info');
+            }
+        }
+    }
+
+
+    function togglePhoneApp(appName) {
+        const phoneScreen = document.getElementById('phone-screen');
+        const currentApp = phoneScreen.dataset.currentApp;
+
+        let contentHtml = '';
+        let title = '';
+
+        switch(appName) {
+            case 'status':
+                title = 'Statut & Compétences';
+                const currentJobDetails = getCurrentJobDetails();
+                contentHtml = `
+                    <p><strong>Emploi:</strong> ${currentJobDetails ? currentJobDetails.title : 'Sans emploi'}</p>
+            <hr style="border-color: var(--border-color); margin: 0.5rem 0;">
+                    <h3>Compétences</h3>
+            <p>Charisme: ${getEffectiveSkill('charisma')}</p>
+            <p>Intelligence: ${getEffectiveSkill('intelligence')}</p>
+            <p>Manuel: ${getEffectiveSkill('manual')}</p>
+                `;
+                break;
+            case 'needs':
+                title = 'Besoins';
+                contentHtml = `
+                    <label>Énergie</label>
+                    <div class="stat-bar-container" style="margin-bottom: 1rem;"><div class="stat-bar" style="width: ${gameState.needs.energy}%; background-color: var(--energy-color);"></div></div>
+                    <label>Bonheur</label>
+                    <div class="stat-bar-container" style="margin-bottom: 1rem;"><div class="stat-bar" style="width: ${gameState.needs.happiness}%; background-color: var(--happiness-color);"></div></div>
+                    <label>Faim</label>
+                    <div class="stat-bar-container"><div class="stat-bar" style="width: ${gameState.needs.hunger}%; background-color: #e67e22;"></div></div>
+                `;
+                break;
+            case 'bank':
+                title = 'Banque';
+                contentHtml = `<div id="loan-info-container"></div><button id="history-btn-app" class="menu-btn" style="width:100%; margin-top:0.5rem;">Voir l'historique</button>`;
+                break;
+            case 'portfolio':
+                title = 'Mon Portfolio';
+                if (gameState.ownedBusinesses.length === 0) {
+                    contentHtml = '<p>Vous ne possédez aucune entreprise.</p>';
+                } else {
+                    let portfolioHtml = '<h4>Entreprises Achetées</h4>';
+                    gameState.ownedBusinesses.forEach(businessId => {
+                        const business = findBusinessById(businessId);
+                        if (business) {
+                            portfolioHtml += `<div class="business-listing"><span><strong>${business.name}</strong> (+${business.income > 0 ? business.income.toLocaleString() + '$/j' : business.rent.toLocaleString() + '$/m'})</span></div>`;
+                        }
+                    });
+                    if (gameState.customBusinesses.length > 0) {
+                        portfolioHtml += '<hr style="border-color: var(--border-color); margin: 1rem 0;"><h4>Entreprises Crées</h4>';
+                        gameState.customBusinesses.forEach(business => {
+                            portfolioHtml += `<p><strong>${business.name}</strong> (+${business.income.toLocaleString()}$/j)</p>`;
+                        });
+                    }
+                    contentHtml = portfolioHtml;
+                }
+                break;
+            case 'ranking':
+                title = 'Classement des Fortunes';
+                const playerNetWorth = calculateNetWorth(gameState.money, gameState.ownedBusinesses);
+                const players = [{ name: 'Vous', netWorth: playerNetWorth }];
+
+                gameState.competitors.forEach(c => {
+                    players.push({ name: c.name, netWorth: calculateNetWorth(c.money, c.ownedBusinesses) });
+                });
+
+                players.sort((a, b) => b.netWorth - a.netWorth);
+
+                let rankingHtml = '';
+                players.forEach((p, index) => {
+                    rankingHtml += `<p><strong>#${index + 1} ${p.name}</strong>: ${p.netWorth.toLocaleString()}$</p>`;
+                });
+                contentHtml = rankingHtml;
+
+                break;
+            case 'jobs':
+                if (gameState.job) {
+                    const currentJob = getCurrentJobDetails();
+                    title = 'Mon Emploi';
+                    contentHtml = `
+                        <p><strong>Poste:</strong> ${currentJob.title}</p>
+                        <p><strong>Salaire:</strong> ${currentJob.salary}$/h</p>
+                        <p><strong>Performance:</strong> ${gameState.job.performance} / ${currentJob.performanceToPromote || 'MAX'}</p>
+                        <button class="menu-btn" style="width:100%; margin-top:1rem; background-color: #c0392b;" onclick="resignFromJob()">Démissionner</button>
+                    `;
+                } else {
+                    title = 'Offres d\'emploi';
+                    let jobsHtml = '';
+                    for (const trackId in jobsData) {
+                        const track = jobsData[trackId];
+                        const job = track.levels[0];
+                        jobsHtml += `
+                            <div class="business-listing">
+                                <div>
+                                    <strong>${job.title}</strong><br>
+                                    <small>Salaire: ${job.salary}$/h</small>
+                                </div>
+                                <button class="menu-btn" style="font-size:0.8rem; padding:0.4rem 0.8rem;" onclick="applyForJob('${trackId}')">Postuler</button>
+                            </div>`;
+                    }
+                    contentHtml = jobsHtml;
+                }
+                break;
+            case 'social':
+                title = 'Relations';
+                let socialHtml = '';
+                for (const id in gameState.player.relationships) {
+                    const contact = gameState.player.relationships[id];
+                    socialHtml += `
+                        <div class="business-listing">
+                            <span>${contact.name} (${Math.round(contact.relationship)}%)</span>
+                            <button class="menu-btn" style="font-size:0.8rem; padding:0.4rem 0.8rem;" onclick="interactWith('${id}')">Interagir</button>
+                        </div>`;
+                }
+                if (gameState.player.partner) {
+                    const partner = gameState.player.partner;
+                    const status = partner.isMarried ? ' (Marié(e))' : ' (Partenaire)';
+                    socialHtml += `
+                        <div class="business-listing">
+                            <span>${partner.name}${status} (${Math.round(partner.relationship)}%)</span>
+                            <button class="menu-btn" style="font-size:0.8rem; padding:0.4rem 0.8rem;" onclick="interactWith('partner')">Interagir</button>
+                        </div>`;
+                }
+                contentHtml = socialHtml;
+                break;
+            case 'inventory':
+                title = 'Inventaire';
+                if (gameState.player.inventory.length === 0) {
+                    contentHtml = '<p>Votre inventaire est vide.</p>';
+                } else {
+                    let inventoryHtml = '';
+                    gameState.player.inventory.forEach(item => {
+                        inventoryHtml += `<p><strong>- ${item.name}</strong></p>`;
+                    });
+                    contentHtml = inventoryHtml;
+                }
+                break;
+            case 'stocks':
+                title = 'Bourse';
+                let stocksHtml = '<h3>Marché</h3>';
+                gameState.world.stocks.forEach(stock => {
+                    stocksHtml += `
+                        <div class="business-listing">
+                            <div style="flex-grow: 1;">
+                                <strong>${stock.symbol}</strong> - ${stock.price.toFixed(2)}$<br>
+                                <small>${stock.name}</small>
+                            </div>
+                            <div style="width: 100px; margin: 0 10px;">${generateStockChart(stock.history)}</div>
+                            <div>
+                                <button class="menu-btn" style="font-size:0.8rem; padding:0.4rem 0.8rem;" onclick="buyStock('${stock.symbol}')">Acheter</button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                stocksHtml += '<hr style="border-color: var(--border-color); margin: 1rem 0;"><h3>Mon Portefeuille</h3>';
+                const ownedStocks = Object.keys(gameState.player.portfolio.stocks);
+                if (ownedStocks.length === 0) {
+                    stocksHtml += '<p>Vous ne possédez aucune action.</p>';
+                } else {
+                    ownedStocks.forEach(symbol => {
+                        const holding = gameState.player.portfolio.stocks[symbol];
+                        const stock = gameState.world.stocks.find(s => s.symbol === symbol);
+                        const currentValue = holding.shares * stock.price;
+                        stocksHtml += `
+                            <div class="business-listing">
+                                <div>
+                                    <strong>${holding.shares} ${symbol}</strong><br>
+                                    <small>Valeur: ${currentValue.toFixed(2)}$</small>
+                                </div>
+                                <button class="menu-btn" style="font-size:0.8rem; padding:0.4rem 0.8rem; background-color: #e67e22;" onclick="sellStock('${symbol}')">Vendre</button>
+                            </div>
+                        `;
+                    });
+                }
+                contentHtml = stocksHtml;
+                break;
+        }
+
+        if (phoneScreen.classList.contains('active') && currentApp === appName) {
+            phoneScreen.classList.remove('active');
+            phoneScreen.dataset.currentApp = '';
+        } else {
+            phoneScreen.innerHTML = `<div class="panel" style="height: 100%; display: flex; flex-direction: column;"><h2>${title}</h2><div style="flex-grow: 1; overflow-y: auto;">${contentHtml}</div></div>`;
+            
+            if (appName === 'bank') {
+                const loanInfoContainer = phoneScreen.querySelector('#loan-info-container');
+                updateBankUI(loanInfoContainer);
+                phoneScreen.querySelector('#history-btn-app').onclick = openHistoryModal;
+            }
+
+            if (appName === 'stocks') {
+            }
+
+            phoneScreen.classList.add('active');
+            phoneScreen.dataset.currentApp = appName;
+        }
+    }
+
+    function resignFromJob() {
+        showNotification(`Vous avez démissionné de votre poste de ${getCurrentJobDetails().title}.`, 'info');
+        gameState.job = null;
+        togglePhoneApp('jobs');
+    }
+
+    function applyForJob(trackId) {
+        const track = jobsData[trackId];
+        const job = track.levels[0];
+        const phoneScreen = document.getElementById('phone-screen');
+
+        let interviewHtml = `
+            <div class="panel" style="height: 100%; display: flex; flex-direction: column;">
+                <h2>Entretien pour ${job.title}</h2>
+                <div style="flex-grow: 1; overflow-y: auto;">
+                    <p><strong>Recruteur :</strong> "Bonjour. Pourquoi devrions-nous vous embaucher ?"</p>
+                    <div class="menu-buttons" style="margin-top: 1rem;">
+        `;
+
+        const responses = [
+            { text: "Je suis très motivé(e) et j'apprends vite.", skillCheck: () => true, weight: 0 },
+            { text: "[Charisme 20] Je suis la personne qu'il vous faut, mon dynamisme est contagieux.", skillCheck: () => gameState.player.skills.charisma >= 20, weight: 25 },
+            { text: "[Intelligence 20] Mon analyse du poste indique que mes compétences correspondent parfaitement.", skillCheck: () => gameState.player.skills.intelligence >= 20, weight: 25 },
+            { text: "J'ai besoin d'argent.", skillCheck: () => true, weight: -20 }
+        ];
+
+        responses.forEach((response, index) => {
+            if (response.skillCheck()) {
+                interviewHtml += `<button class="menu-btn" style="font-size: 0.9rem; padding: 0.8rem;" onclick="handleJobResponse('${trackId}', ${response.weight})">${response.text}</button>`;
+            }
+        });
+
+        interviewHtml += `</div></div></div>`;
+        phoneScreen.innerHTML = interviewHtml;
+    }
+
+    function handleJobResponse(trackId, weight) {
+        const track = jobsData[trackId];
+        const job = track.levels[0];
+        let successChance = 30;
+
+        let meetsRequirements = true;
+        for (const skill in job.requiredSkills) {
+            if (getEffectiveSkill(skill) < job.requiredSkills[skill]) {
+                meetsRequirements = false;
+                break;
+            }
+        }
+
+        if (meetsRequirements) {
+            successChance += 30;
+        }
+
+        successChance += weight;
+
+        const phoneScreen = document.getElementById('phone-screen');
+        let resultHtml = `<div class="panel" style="height: 100%;"><h2>Résultat de l'entretien</h2>`;
+
+        if (Math.random() * 100 < successChance) {
+            resultHtml += `<p><strong>Recruteur :</strong> "Parfait, vous êtes embauché ! Bienvenue chez nous."</p>`;
+            gameState.job = {
+                trackId: trackId,
+                levelIndex: 0,
+                performance: 0
+            };
+            showNotification(`Félicitations ! Vous avez été embauché comme ${job.title}.`, 'success');
+        } else {
+            resultHtml += `<p><strong>Recruteur :</strong> "Merci pour votre temps. Nous vous recontacterons si votre profil est retenu."</p>`;
+            showNotification("Vous n'avez pas obtenu le poste.", 'error');
+        }
+        resultHtml += `</div>`;
+        phoneScreen.innerHTML = resultHtml;
+    }
+
+    function interactWith(contactId) {
+        const contact = contactId === 'partner' ? gameState.player.partner : gameState.player.relationships[contactId];
+        const phoneScreen = document.getElementById('phone-screen');
+
+        let interactionHtml = `
+            <div class="panel" style="height: 100%; display: flex; flex-direction: column;">
+                <h2>Interagir avec ${contact.name}</h2>
+                <div class="menu-buttons" style="margin-top: 1rem;">
+                    <button class="menu-btn" style="font-size: 0.9rem; padding: 0.8rem;" onclick="performInteraction('${contactId}', 'call')">Appeler (15min)</button>
+                    <button class="menu-btn" style="font-size: 0.9rem; padding: 0.8rem;" onclick="performInteraction('${contactId}', 'visit')">Passer du temps (2h)</button>
+                </div>
+            </div>`;
+        phoneScreen.innerHTML = interactionHtml;
+    }
+
+    function performInteraction(contactId, type) {
+        const contact = contactId === 'partner' ? gameState.player.partner : gameState.player.relationships[contactId];
+        if (type === 'call') {
+            advanceTime(0.25);
+            contact.relationship = Math.min(100, contact.relationship + 2);
+            gameState.needs.happiness = Math.min(100, gameState.needs.happiness + 5);
+            showNotification(`Vous avez appelé ${contact.name}.`, 'success');
+        } else if (type === 'visit') {
+            advanceTime(2);
+            contact.relationship = Math.min(100, contact.relationship + 15);
+            gameState.needs.happiness = Math.min(100, gameState.needs.happiness + 35);
+            showNotification(`Vous avez passé un excellent moment avec ${contact.name}.`, 'success');
+        }
+        togglePhoneApp('social');
+    }
+
+    function isBusinessOwned(businessId) {
+        if (gameState.ownedBusinesses.includes(businessId)) return true;
+        for (const competitor of gameState.competitors) {
+            if (competitor.ownedBusinesses.includes(businessId)) return true;
+        }
+        return false;
+    }
+
+
+
+    function getEffectiveSkill(skill) {
+        let value = gameState.player.skills[skill];
+        gameState.player.inventory.forEach(item => {
+            const luxuryItem = luxuryItems.find(li => li.id === item.id);
+            if (luxuryItem && luxuryItem.bonus.type === 'skill' && luxuryItem.bonus.skill === skill) {
+                value += luxuryItem.bonus.value;
+            }
+        });
+        return value;
+    }
+
+    function calculateNetWorth(money, businessIds) {
+        let worth = money;
+        businessIds.forEach(id => {
+            const business = findBusinessById(id);
+            if (business) worth += business.price;
+        });
+        return Math.floor(worth);
+    }
+
+
+
+
+    function showLifeEvent(event) {
+        const modal = document.getElementById('event-modal');
+        document.getElementById('event-title').textContent = event.title;
+        document.getElementById('event-description').textContent = event.description;
+        const choicesContainer = document.getElementById('event-choices');
+        choicesContainer.innerHTML = '';
+
+        event.choices.forEach(choice => {
+            if (choice.condition()) {
+                const btn = document.createElement('button');
+                btn.className = 'menu-btn';
+                btn.textContent = choice.text;
+                btn.onclick = () => {
+                    choice.action();
+                    modal.classList.remove('active');
+                    gameInterval = setInterval(gameLoop, GAME_TICK_MS);
+                };
+                choicesContainer.appendChild(btn);
+            }
+        });
+        modal.classList.add('active');
+    }
+
+    function takeVacation(vacation) {
+        if (gameState.money >= vacation.cost) {
+            removeMoney(vacation.cost, `Vacances: ${vacation.name}`);
+            
+            for (let i = 0; i < vacation.durationDays; i++) {
+                gameState.time.day++;
+            }
+            
+            gameState.needs.energy = 100;
+            gameState.needs.happiness = 100;
+            showNotification(`Vous revenez de vacances, frais et dispos !`, 'success');
+        } else {
+            showNotification("Fonds insuffisants pour partir en vacances.", 'error');
+        }
+    }
+
+    function showCreateBusinessForm() {
+        const phoneScreen = document.getElementById('phone-screen');
+        const businessTypes = [
+            { name: 'Café', cost: 15000, baseIncome: 150 },
+            { name: 'Agence de conseil', cost: 25000, baseIncome: 300 },
+            { name: 'Startup Tech', cost: 50000, baseIncome: 500 }
+        ];
+
+        let formHtml = `
+            <div class="panel" style="height: 100%; display: flex; flex-direction: column;">
+                <h2>Créer une entreprise</h2>
+                <div style="flex-grow: 1; overflow-y: auto;">
+                    <p>Nom de l'entreprise:</p>
+                    <input type="text" id="new-business-name" placeholder="Ex: Mon Super Café" style="width: 90%; margin-bottom: 1rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: white; padding: 0.5rem;">
+                    <p>Type d'entreprise:</p>
+                    <div class="menu-buttons">
+        `;
+
+        businessTypes.forEach(type => {
+            formHtml += `<button class="menu-btn" style="font-size: 0.9rem;" onclick="createBusiness('${type.name}', ${type.cost}, ${type.baseIncome})">${type.name} (Coût: ${type.cost.toLocaleString()}$)</button>`;
+        });
+
+        formHtml += `</div></div></div>`;
+        phoneScreen.innerHTML = formHtml;
+        phoneScreen.classList.add('active');
+        phoneScreen.dataset.currentApp = 'createBusiness';
+    }
+
+    function createBusiness(type, cost, baseIncome) {
+        const name = document.getElementById('new-business-name').value;
+        if (!name) {
+            showNotification("Veuillez donner un nom à votre entreprise.", 'error');
+            return;
+        }
+        if (gameState.money < cost) {
+            showNotification("Fonds insuffisants pour créer cette entreprise.", 'error');
+            return;
+        }
+
+        removeMoney(cost, `Création d'entreprise: ${name}`);
+
+        const newBusiness = {
+            id: 'custom_' + (gameState.customBusinesses.length + 1),
+            name: name,
+            type: type,
+            income: baseIncome,
+            level: 1
+        };
+
+        gameState.customBusinesses.push(newBusiness);
+        gameState.ownedBusinesses.push(newBusiness.id);
+
+        showNotification(`Félicitations ! Votre entreprise "${name}" est lancée !`, 'success');
+        togglePhoneApp('portfolio');
+    }
+
+    function buyLuxuryItem(itemId) {
+        const item = luxuryItems.find(i => i.id === itemId);
+        if (!item) return;
+
+        if (gameState.money >= item.cost) {
+            removeMoney(item.cost, `Achat: ${item.name}`);
+            gameState.player.inventory.push({ id: item.id, name: item.name });
+            if (item.bonus.type === 'one_time') {
+                item.bonus.effect();
+            }
+            showNotification(`Vous avez acheté: ${item.name} !`, 'success');
+            updateActionButtons();
+        } else {
+            showNotification("Fonds insuffisants.", 'error');
+        }
+    }
+
+    function generateStockChart(history, width = 100, height = 30) {
+        if (history.length < 2) {
+            return `<svg width="${width}" height="${height}" viewbox="0 0 ${width} ${height}" preserveAspectRatio="none"><line x1="0" y1="${height/2}" x2="${width}" y2="${height/2}" stroke="#888" stroke-width="1"/></svg>`;
+        }
+
+        const max = Math.max(...history);
+        const min = Math.min(...history);
+        const range = max - min;
+
+        if (range === 0) {
+            return `<svg width="${width}" height="${height}" viewbox="0 0 ${width} ${height}" preserveAspectRatio="none"><line x1="0" y1="${height/2}" x2="${width}" y2="${height/2}" stroke="#888" stroke-width="1"/></svg>`;
+        }
+
+        const points = history.map((price, index) => {
+            const x = (index / (history.length - 1)) * width;
+            const y = height - ((price - min) / range) * height;
+            return `${x.toFixed(2)},${y.toFixed(2)}`;
+        }).join(' ');
+
+        const lastPrice = history[history.length - 1];
+        const firstPrice = history[0];
+        const color = lastPrice >= firstPrice ? 'var(--success-color)' : '#e74c3c';
+
+        return `<svg width="${width}" height="${height}" viewbox="0 0 ${width} ${height}" preserveAspectRatio="none">
+                    <polyline fill="none" stroke="${color}" stroke-width="1.5" points="${points}" />
+                </svg>`;
+    }
+
+    function buyStock(symbol) {
+        const sharesToBuy = parseInt(prompt("Combien d'actions acheter ?", "10"));
+        if (isNaN(sharesToBuy) || sharesToBuy <= 0) return;
+
+        const stock = gameState.world.stocks.find(s => s.symbol === symbol);
+        const cost = stock.price * sharesToBuy;
+
+        if (gameState.money >= cost) {
+            removeMoney(cost, `Achat de ${sharesToBuy} ${symbol}`);
+            
+            const holding = gameState.player.portfolio.stocks[symbol];
+            if (holding) {
+                const totalCost = (holding.avgPrice * holding.shares) + cost;
+                holding.shares += sharesToBuy;
+                holding.avgPrice = totalCost / holding.shares;
+            } else {
+                gameState.player.portfolio.stocks[symbol] = {
+                    shares: sharesToBuy,
+                    avgPrice: stock.price
+                };
+            }
+            showNotification(`Achat de ${sharesToBuy} actions ${symbol} réussi !`, 'success');
+            togglePhoneApp('stocks');
+        } else {
+            showNotification("Fonds insuffisants.", 'error');
+        }
+    }
+
+    function sellStock(symbol) {
+        const holding = gameState.player.portfolio.stocks[symbol];
+        if (!holding) return;
+
+        const sharesToSell = parseInt(prompt(`Combien d'actions vendre ? (Vous avez ${holding.shares})`, holding.shares));
+        if (isNaN(sharesToSell) || sharesToSell <= 0 || sharesToSell > holding.shares) return;
+
+        const stock = gameState.world.stocks.find(s => s.symbol === symbol);
+        const income = stock.price * sharesToSell;
+
+        addMoney(income, `Vente de ${sharesToSell} ${symbol}`);
+        holding.shares -= sharesToSell;
+
+        if (holding.shares === 0) delete gameState.player.portfolio.stocks[symbol];
+        
+        showNotification(`Vente de ${sharesToSell} actions ${symbol} réussie !`, 'success');
+        togglePhoneApp('stocks');
+    }
+
+    function showRenovationOptions(businessId) {
+        alert("La rénovation n'est pas encore disponible pour ce type de bien.");
+    }
+
+    document.addEventListener('DOMContentLoaded', initialize);
+    </script>
+  
 </body>
 </html>
